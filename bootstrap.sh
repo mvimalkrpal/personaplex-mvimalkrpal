@@ -38,6 +38,3 @@ import moshi
 import moshi.server
 print("moshi import OK")
 EOF
-
-cd ~/personaplex-mvimalkrpal
-source ~/persona_env/bin/activate

@@ -1,7 +1,5 @@
 cd ~/personaplex-mvimalkrpal
 git pull
-uv venv ~/persona_env --python 3.10
-source ~/persona_env/bin/activate
 if [[ -z "${HF_TOKEN:-}" ]]; then
   if [[ -t 0 ]]; then
     read -rsp "Enter HF_TOKEN: " HF_TOKEN
@@ -13,7 +11,6 @@ if [[ -z "${HF_TOKEN:-}" ]]; then
   fi
 fi
 
-cd ~/personaplex-mvimalkrpal
-source ~/persona_env/bin/activate
+
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-python -m moshi.server --device cpu --cpu-offload
+uv run --python ~/persona_env/bin/python -m moshi.server --device cpu --cpu-offload
