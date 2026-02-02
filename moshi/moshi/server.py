@@ -54,6 +54,8 @@ from .utils.logging import setup_logger, ColorizedLog
 logger = setup_logger(__name__)
 DeviceString = Literal["cuda"] | Literal["cpu"] #| Literal["mps"]
 
+IELTS_PROMPT="""Only reply: "I am groot"""
+
 def torch_auto_device(requested: Optional[DeviceString] = None) -> torch.device:
     """Return a torch.device based on the requested string or availability."""
     if requested is not None:
@@ -167,7 +169,7 @@ class ServerState:
                 self.lm_gen.load_voice_prompt_embeddings(voice_prompt_path)
             else:
                 self.lm_gen.load_voice_prompt(voice_prompt_path)
-        self.lm_gen.text_prompt_tokens = self.text_tokenizer.encode(wrap_with_system_tags(request.query["text_prompt"])) if len(request.query["text_prompt"]) > 0 else None
+        self.lm_gen.text_prompt_tokens = self.text_tokenizer.encode(wrap_with_system_tags(IELTS_PROMPT)) if len(IELTS_PROMPT) > 0 else None
         seed = int(request["seed"]) if "seed" in request.query else None
 
         async def recv_loop():
@@ -251,8 +253,8 @@ class ServerState:
                     await ws.send_bytes(b"\x01" + msg)
 
         clog.log("info", "accepted connection")
-        if len(request.query["text_prompt"]) > 0:
-            clog.log("info", f"text prompt: {request.query['text_prompt']}")
+        if len(IELTS_PROMPT) > 0:
+            clog.log("info", f"text prompt: {IELTS_PROMPT}")
         if len(request.query["voice_prompt"]) > 0:
             clog.log("info", f"voice prompt: {voice_prompt_path} (requested: {requested_voice_prompt_path})")
         close = False

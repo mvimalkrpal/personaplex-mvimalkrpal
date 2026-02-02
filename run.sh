@@ -1,4 +1,7 @@
 cd ~/personaplex-mvimalkrpal
+git fetch --all
+git reset --hard origin/main
+git clean -fd
 git pull
 if [[ -z "${HF_TOKEN:-}" ]]; then
   if [[ -t 0 ]]; then
