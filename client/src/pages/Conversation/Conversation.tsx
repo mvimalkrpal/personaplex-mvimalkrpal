@@ -207,10 +207,10 @@ export const Conversation: FC<ConversationProps> = ({
       return { text: "Session Ended", color: "text-gray-400", dotColor: "bg-gray-400" };
     }
     if (socketStatus === "connected") {
-      return { text: "Examiner Ready – Start Speaking", color: "text-green-400", dotColor: "bg-green-500" };
+      return { text: "AI Ready – Start Speaking", color: "text-green-400", dotColor: "bg-green-500" };
     }
     if (socketStatus === "connecting") {
-      return { text: "Connecting to AI Examiner...", color: "text-yellow-400", dotColor: "bg-yellow-500" };
+      return { text: "Connecting...", color: "text-yellow-400", dotColor: "bg-yellow-500" };
     }
     return { text: "Disconnected", color: "text-red-400", dotColor: "bg-red-500" };
   }, [socketStatus, isOver]);

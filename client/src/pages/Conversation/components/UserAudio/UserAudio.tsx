@@ -1,16 +1,15 @@
-import { FC, useCallback, useEffect, useRef, useState } from "react";
+import { FC, useCallback, useEffect } from "react";
 import { useSocketContext } from "../../SocketContext";
 import { useUserAudio } from "../../hooks/useUserAudio";
-import { ClientVisualizer } from "../AudioVisualizer/ClientVisualizer";
 import { type ThemeType } from "../../hooks/useSystemTheme";
 
 type UserAudioProps = {
   theme: ThemeType;
 };
-export const UserAudio: FC<UserAudioProps> = ({theme}) => {
-  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
+
+export const UserAudio: FC<UserAudioProps> = ({ theme: _theme }) => {
   const { sendMessage, socketStatus } = useSocketContext();
-  const containerRef = useRef<HTMLDivElement>(null);
+
   const onRecordingStart = useCallback(() => {
     console.log("Recording started");
   }, []);
@@ -53,20 +52,16 @@ export const UserAudio: FC<UserAudioProps> = ({theme}) => {
       startRecordingUser().then(result => {
         if (result) {
           res = result;
-          setAnalyser(result.analyser);
         }
       });
     }
     return () => {
-      console.log("Stop recording called from somewhere else.");
+      console.log("Stop recording called");
       stopRecording();
       res?.source?.disconnect();
     };
   }, [startRecordingUser, stopRecording, socketStatus]);
 
-  return (
-    <div className="user-audio h-5/6 aspect-square" ref={containerRef}>
-      <ClientVisualizer theme={theme} analyser={analyser} parent={containerRef}/>
-    </div>
-  );
+  // No visual component - the orb in ServerAudio handles visualization
+  return null;
 };

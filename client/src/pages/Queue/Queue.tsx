@@ -1,45 +1,173 @@
 import moshiProcessorUrl from "../../audio-processor.ts?worker&url";
-import { FC, useEffect, useState, useCallback, useRef, MutableRefObject } from "react";
+import { FC, useState, useCallback, useRef, MutableRefObject } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Conversation } from "../Conversation/Conversation";
 import { useModelParams } from "../Conversation/hooks/useModelParams";
 import { prewarmDecoderWorker } from "../../decoder/decoderWorker";
 
 // IELTS Examiner persona - default prompt
-const IELTS_EXAMINER_PROMPT = `You are an experienced IELTS speaking examiner conducting an official speaking test. Your role is to:
-- Ask clear, well-paced questions appropriate for IELTS speaking test
-- Give candidates time to respond fully
-- Ask natural follow-up questions based on their answers
-- Cover all three parts of the speaking test progressively
-- Be professional, encouraging, and maintain a natural conversation flow
+const DEFAULT_PROMPT = `You are an experienced IELTS Speaking Examiner AND IELTS Speaking Teacher conducting a short, realistic MOCK speaking test for demonstration purposes.
 
-Start by greeting the candidate warmly and asking for their full name. Then proceed with Part 1 questions about familiar topics.`;
+                        ROLE BLEND (IMPORTANT):
+                        - Conduct the test in the style of an IELTS examiner (formal, neutral, structured).
+                        - After the candidate answers, briefly switch into IELTS teacher mode when necessary.
+                        - Correct only clear mistakes that affect IELTS score (grammar, vocabulary, pronunciation, coherence).
+                        - Keep corrections short, practical, and exam-focused.
+                        - Do NOT overteach or give long explanations.
 
-// Natural female voice for examiner
+                        TEST FORMAT (5 MINUTES TOTAL):
+
+                        INTRODUCTION:
+                        - Greet the candidate professionally.
+                        - Ask for the candidate’s full name.
+                        - Ask where they are from.
+                        - Explain briefly: “This is a short mock speaking test with feedback.”
+
+                        PART 1 – FAMILIAR TOPICS (3–4 minutes):
+                        - Ask questions about daily life, work/study, hobbies, or home.
+                        - Ask 1 natural follow-up per question.
+                        - After each answer:
+                          - If the answer is good → say “Okay” or “Thank you” and continue.
+                          - If there is a mistake → briefly correct it and give a better example answer.
+
+                        PART 2 – SHORT LONG TURN (OPTIONAL, 1–2 minutes):
+                        - Introduce a simplified cue card.
+                        - Allow 30 seconds of preparation (no silence required).
+                        - Ask the candidate to speak for about 1 minute.
+                        - Stop politely if they exceed time.
+                        - Give 2–3 concise corrections or improvements after the response.
+
+                        CORRECTION STYLE:
+                        - Clearly point out the mistake.
+                        - Show the corrected version.
+                        - Explain in one sentence why it’s better for IELTS.
+                        - Focus on Band 6–7 improvements.
+
+                        GENERAL RULES:
+                        - Ask one question at a time.
+                        - Keep a calm examiner tone.
+                        - Do not sound casual or friendly.
+                        - Balance realism with teaching.
+
+                        Begin now by greeting the candidate and asking for their full name.`;
+
+// Voice options
+const VOICE_OPTIONS = [
+  { id: "NATF0.pt", label: "Natural Female 1", category: "Natural" },
+  { id: "NATF1.pt", label: "Natural Female 2", category: "Natural" },
+  { id: "NATF2.pt", label: "Natural Female 3", category: "Natural" },
+  { id: "NATF3.pt", label: "Natural Female 4", category: "Natural" },
+  { id: "NATM0.pt", label: "Natural Male 1", category: "Natural" },
+  { id: "NATM1.pt", label: "Natural Male 2", category: "Natural" },
+  { id: "NATM2.pt", label: "Natural Male 3", category: "Natural" },
+  { id: "NATM3.pt", label: "Natural Male 4", category: "Natural" },
+  { id: "VARF0.pt", label: "Variety Female 1", category: "Variety" },
+  { id: "VARF1.pt", label: "Variety Female 2", category: "Variety" },
+  { id: "VARF2.pt", label: "Variety Female 3", category: "Variety" },
+  { id: "VARF3.pt", label: "Variety Female 4", category: "Variety" },
+  { id: "VARF4.pt", label: "Variety Female 5", category: "Variety" },
+  { id: "VARM0.pt", label: "Variety Male 1", category: "Variety" },
+  { id: "VARM1.pt", label: "Variety Male 2", category: "Variety" },
+  { id: "VARM2.pt", label: "Variety Male 3", category: "Variety" },
+  { id: "VARM3.pt", label: "Variety Male 4", category: "Variety" },
+  { id: "VARM4.pt", label: "Variety Male 5", category: "Variety" },
+];
+
 const DEFAULT_VOICE = "NATF0.pt";
 
 interface HomepageProps {
   showMicrophoneAccessMessage: boolean;
   startConnection: () => Promise<void>;
+  selectedVoice: string;
+  setSelectedVoice: (voice: string) => void;
 }
 
 const Homepage = ({
   startConnection,
   showMicrophoneAccessMessage,
+  selectedVoice,
+  setSelectedVoice,
 }: HomepageProps) => {
+  const [showVoicePanel, setShowVoicePanel] = useState(false);
+
   return (
     <div className="min-h-screen w-screen flex flex-col items-center justify-center p-6 relative">
       {/* Ambient glow background */}
       <div className="ambient-glow" />
-
-      {/* Background gradient overlay */}
       <div className="fixed inset-0 bg-gradient-to-tr from-purple-900/20 via-transparent to-fuchsia-900/20 pointer-events-none" />
 
+      {/* Voice Selection Button (top right) */}
+      <button
+        onClick={() => setShowVoicePanel(!showVoicePanel)}
+        className="fixed top-6 right-6 z-20 glass px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors"
+      >
+        🎙️ Voice
+      </button>
+
+      {/* Voice Selection Panel */}
+      {showVoicePanel && (
+        <div className="fixed top-16 right-6 z-30 glass p-4 w-64 max-h-96 overflow-y-auto scrollbar">
+          <h3 className="text-sm font-semibold text-white mb-3">Select Voice</h3>
+
+          {/* Natural voices */}
+          <div className="mb-4">
+            <p className="text-xs text-gray-400 mb-2">Natural</p>
+            <div className="space-y-1">
+              {VOICE_OPTIONS.filter(v => v.category === "Natural").map(voice => (
+                <button
+                  key={voice.id}
+                  onClick={() => {
+                    setSelectedVoice(voice.id);
+                    setShowVoicePanel(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${selectedVoice === voice.id
+                    ? 'bg-purple-500/30 text-purple-300'
+                    : 'hover:bg-white/10 text-gray-300'
+                    }`}
+                >
+                  {voice.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Variety voices */}
+          <div>
+            <p className="text-xs text-gray-400 mb-2">Variety</p>
+            <div className="space-y-1">
+              {VOICE_OPTIONS.filter(v => v.category === "Variety").map(voice => (
+                <button
+                  key={voice.id}
+                  onClick={() => {
+                    setSelectedVoice(voice.id);
+                    setShowVoicePanel(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${selectedVoice === voice.id
+                    ? 'bg-purple-500/30 text-purple-300'
+                    : 'hover:bg-white/10 text-gray-300'
+                    }`}
+                >
+                  {voice.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Click outside to close */}
+      {showVoicePanel && (
+        <div
+          className="fixed inset-0 z-10"
+          onClick={() => setShowVoicePanel(false)}
+        />
+      )}
+
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center gap-8 max-w-lg text-center">
+      <div className="relative z-10 flex flex-col items-center gap-10 text-center">
 
         {/* Brand */}
-        <div className="mb-4">
+        <div>
           <h1 className="text-5xl font-bold gradient-text mb-3">
             Anglotec AI Demo
           </h1>
@@ -48,36 +176,11 @@ const Homepage = ({
           </p>
         </div>
 
-        {/* Description */}
-        <div className="glass p-6">
-          <p className="text-gray-300 leading-relaxed">
-            Experience real-time voice AI conversation.
-            Experience a realistic speaking test environment with natural
-            conversation flow and instant feedback.
-          </p>
-        </div>
-
-        {/* Features */}
-        <div className="grid grid-cols-3 gap-4 w-full">
-          <div className="glass p-4 text-center">
-            <div className="text-2xl mb-2">🎯</div>
-            <div className="text-sm text-gray-300">Real Test Format</div>
-          </div>
-          <div className="glass p-4 text-center">
-            <div className="text-2xl mb-2">🎙️</div>
-            <div className="text-sm text-gray-300">Natural Voice</div>
-          </div>
-          <div className="glass p-4 text-center">
-            <div className="text-2xl mb-2">💬</div>
-            <div className="text-sm text-gray-300">Full Duplex</div>
-          </div>
-        </div>
-
         {/* Microphone warning */}
         {showMicrophoneAccessMessage && (
           <div className="glass p-4 border-red-500/50 bg-red-500/10">
             <p className="text-red-400 text-sm">
-              ⚠️ Please enable microphone access to continue
+              ⚠️ Please enable microphone access
             </p>
           </div>
         )}
@@ -85,14 +188,14 @@ const Homepage = ({
         {/* Start button */}
         <button
           onClick={async () => await startConnection()}
-          className="btn-primary text-lg px-10 py-4"
+          className="btn-primary text-lg px-12 py-5"
         >
-          Start IELTS Session
+          Start New Session
         </button>
 
-        {/* Footer note */}
-        <p className="text-gray-500 text-xs mt-4">
-          Ensure you're in a quiet environment with a working microphone
+        {/* Selected voice indicator */}
+        <p className="text-gray-500 text-xs">
+          Voice: {VOICE_OPTIONS.find(v => v.id === selectedVoice)?.label || selectedVoice}
         </p>
       </div>
     </div>
@@ -105,19 +208,21 @@ export const Queue: FC = () => {
   const overrideWorkerAddr = searchParams.get("worker_addr");
   const [hasMicrophoneAccess, setHasMicrophoneAccess] = useState<boolean>(false);
   const [showMicrophoneAccessMessage, setShowMicrophoneAccessMessage] = useState<boolean>(false);
+  const [selectedVoice, setSelectedVoice] = useState(DEFAULT_VOICE);
+
   const modelParams = useModelParams({
-    textPrompt: IELTS_EXAMINER_PROMPT,
-    voicePrompt: DEFAULT_VOICE,
+    textPrompt: DEFAULT_PROMPT,
+    voicePrompt: selectedVoice,
   });
+
+  // Update voice when selection changes
+  const handleVoiceChange = useCallback((voice: string) => {
+    setSelectedVoice(voice);
+    modelParams.setVoicePrompt(voice);
+  }, [modelParams]);
 
   const audioContext = useRef<AudioContext | null>(null);
   const worklet = useRef<AudioWorkletNode | null>(null);
-
-  // Set IELTS defaults on mount
-  useEffect(() => {
-    modelParams.setTextPrompt(IELTS_EXAMINER_PROMPT);
-    modelParams.setVoicePrompt(DEFAULT_VOICE);
-  }, []);
 
   const getMicrophoneAccess = useCallback(async () => {
     try {
@@ -140,11 +245,11 @@ export const Queue: FC = () => {
     if (worklet.current) {
       return;
     }
-    let ctx = audioContext.current;
+    const ctx = audioContext.current;
     ctx.resume();
     try {
       worklet.current = new AudioWorkletNode(ctx, 'moshi-processor');
-    } catch (err) {
+    } catch (_err) {
       await ctx.audioWorklet.addModule(moshiProcessorUrl);
       worklet.current = new AudioWorkletNode(ctx, 'moshi-processor');
     }
@@ -171,6 +276,8 @@ export const Queue: FC = () => {
         <Homepage
           startConnection={startConnection}
           showMicrophoneAccessMessage={showMicrophoneAccessMessage}
+          selectedVoice={selectedVoice}
+          setSelectedVoice={handleVoiceChange}
         />
       )}
     </>

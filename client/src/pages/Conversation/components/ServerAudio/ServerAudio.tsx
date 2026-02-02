@@ -1,34 +1,35 @@
-import { FC, useRef } from "react";
+import { FC } from "react";
 import { AudioStats, useServerAudio } from "../../hooks/useServerAudio";
-import { ServerVisualizer } from "../AudioVisualizer/ServerVisualizer";
+import { OrbVisualizer } from "../../../../components/OrbVisualizer/OrbVisualizer";
 import { type ThemeType } from "../../hooks/useSystemTheme";
 
 type ServerAudioProps = {
   setGetAudioStats: (getAudioStats: () => AudioStats) => void;
   theme: ThemeType;
 };
-export const ServerAudio: FC<ServerAudioProps> = ({ setGetAudioStats, theme }) => {
+
+export const ServerAudio: FC<ServerAudioProps> = ({ setGetAudioStats, theme: _theme }) => {
   const { analyser, hasCriticalDelay, setHasCriticalDelay } = useServerAudio({
     setGetAudioStats,
   });
-  const containerRef = useRef<HTMLDivElement>(null);
+
   return (
     <>
       {hasCriticalDelay && (
-        <div className="fixed left-0 top-0 flex w-screen justify-between bg-red-500 p-2 text-center">
-          <p>A connection issue has been detected, you've been reconnected</p>
+        <div className="fixed left-0 top-0 flex w-screen justify-between bg-red-500/90 p-2 text-center z-50">
+          <p className="text-white">A connection issue has been detected</p>
           <button
             onClick={async () => {
               setHasCriticalDelay(false);
             }}
-            className="bg-white p-1 text-black"
+            className="bg-white px-3 py-1 text-black rounded text-sm"
           >
             Dismiss
           </button>
         </div>
       )}
-      <div className="server-audio h-4/6 aspect-square" ref={containerRef}>
-        <ServerVisualizer analyser={analyser.current} parent={containerRef} theme={theme}/>
+      <div className="flex items-center justify-center">
+        <OrbVisualizer analyser={analyser.current} />
       </div>
     </>
   );
