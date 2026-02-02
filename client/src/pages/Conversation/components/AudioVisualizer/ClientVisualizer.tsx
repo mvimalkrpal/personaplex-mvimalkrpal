@@ -10,22 +10,23 @@ type AudioVisualizerProps = {
 
 const MAX_INTENSITY = 255;
 
+// Purple/Fuchsia gradient colors for IELTS theme
 const COLORS = [
-  "#265600",  // 1 (bottom)
-  "#3A6F00",  // 2
-  "#4E8800",  // 3
-  "#62A100",  // 4
-  "#76B900",  // 5
-  "#8DA800",  // 6
-  "#A49800",  // 7
-  "#BB8700",  // 8
-  "#D17600",  // 9
-  "#E86600",  // 10
-  "#FF5500",  // 11 (top)
+  "#4c1d95",  // 1 (bottom) - Purple-900
+  "#5b21b6",  // 2 - Purple-800
+  "#6d28d9",  // 3 - Purple-700
+  "#7c3aed",  // 4 - Purple-600
+  "#8b5cf6",  // 5 - Purple-500
+  "#a855f7",  // 6 - Purple-400
+  "#c026d3",  // 7 - Fuchsia-600
+  "#d946ef",  // 8 - Fuchsia-500
+  "#e879f9",  // 9 - Fuchsia-400
+  "#f0abfc",  // 10 - Fuchsia-300
+  "#f5d0fe",  // 11 (top) - Fuchsia-200
 ];
 
 export const ClientVisualizer: FC<AudioVisualizerProps> = ({ analyser, parent, theme }) => {
-  const [canvasWidth, setCanvasWidth] = useState(parent.current ? Math.min(parent.current.clientWidth, parent.current.clientHeight) : 0 );
+  const [canvasWidth, setCanvasWidth] = useState(parent.current ? Math.min(parent.current.clientWidth, parent.current.clientHeight) : 0);
   const requestRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -41,12 +42,16 @@ export const ClientVisualizer: FC<AudioVisualizerProps> = ({ analyser, parent, t
     ) => {
       const barHeight = height / 10 - gap;
       for (let i = 1; i <= 10; i++) {
-        const barY = y + height + gap + Math.min(1, width / 30)- (i * barHeight + i * gap);
+        const barY = y + height + gap + Math.min(1, width / 30) - (i * barHeight + i * gap);
         ctx.fillStyle = COLORS[i - 1];
-        ctx.strokeStyle = theme === "dark" ? "white" : "black";
+        ctx.strokeStyle = "rgba(168, 85, 247, 0.3)";
         ctx.lineWidth = Math.min(1, height / 100);
-        if(i <= volume) {
+        if (i <= volume) {
+          // Add glow effect for active bars
+          ctx.shadowColor = COLORS[i - 1];
+          ctx.shadowBlur = 8;
           ctx.fillRect(x, barY, width, barHeight);
+          ctx.shadowBlur = 0;
         }
         ctx.strokeRect(x, barY, width, barHeight);
       }
@@ -54,7 +59,7 @@ export const ClientVisualizer: FC<AudioVisualizerProps> = ({ analyser, parent, t
     [],
   );
 
-  const draw = useCallback((ctx:CanvasRenderingContext2D, audioData: Uint8Array,  x:number, y: number, width:number, height: number) => {
+  const draw = useCallback((ctx: CanvasRenderingContext2D, audioData: Uint8Array, x: number, y: number, width: number, height: number) => {
     const stereoGap = Math.floor(width / 30);
     const barGap = Math.floor(height / 30);
     const padding = Math.floor(width / 30);
@@ -73,8 +78,10 @@ export const ClientVisualizer: FC<AudioVisualizerProps> = ({ analyser, parent, t
       MAX_INTENSITY,
     );
     const volume = Math.floor((intensity * 10) / MAX_INTENSITY);
-    ctx.fillStyle = theme === "dark" ? "#000000" : "#fafafa";
-    ctx.fillRect(x, y, width, height);
+
+    // Clear with transparent background
+    ctx.clearRect(x, y, width, height);
+
     drawBars(
       ctx,
       centerX - maxBarWidth - stereoGap / 2,
@@ -102,7 +109,6 @@ export const ClientVisualizer: FC<AudioVisualizerProps> = ({ analyser, parent, t
     }
     requestRef.current = window.requestAnimationFrame(() => visualizeData());
     if (!canvasRef.current) {
-      console.log("Canvas not found");
       return;
     }
     const audioData = new Uint8Array(140);
@@ -110,11 +116,10 @@ export const ClientVisualizer: FC<AudioVisualizerProps> = ({ analyser, parent, t
 
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) {
-      console.log("Canvas context not found");
       return;
     }
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    draw(ctx, audioData, 0, 0,  width, width);
+    draw(ctx, audioData, 0, 0, width, width);
   }, [analyser, canvasWidth, drawBars, parent, draw]);
 
   useEffect(() => {
@@ -125,6 +130,7 @@ export const ClientVisualizer: FC<AudioVisualizerProps> = ({ analyser, parent, t
       }
     };
   }, [visualizeData, analyser]);
+
   return (
     <canvas
       ref={canvasRef}

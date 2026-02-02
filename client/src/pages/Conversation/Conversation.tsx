@@ -3,12 +3,8 @@ import { useSocket } from "./hooks/useSocket";
 import { SocketContext } from "./SocketContext";
 import { ServerAudio } from "./components/ServerAudio/ServerAudio";
 import { UserAudio } from "./components/UserAudio/UserAudio";
-import { Button } from "../../components/Button/Button";
-import { ServerAudioStats } from "./components/ServerAudio/ServerAudioStats";
 import { AudioStats } from "./hooks/useServerAudio";
-import { TextDisplay } from "./components/TextDisplay/TextDisplay";
 import { MediaContext } from "./MediaContext";
-import { ServerInfo } from "./components/ServerInfo/ServerInfo";
 import { ModelParamsValues, useModelParams } from "./hooks/useModelParams";
 import fixWebmDuration from "webm-duration-fix";
 import { getMimeType, getExtension } from "./getMimeType";
@@ -21,8 +17,8 @@ type ConversationProps = {
   sessionId?: number;
   email?: string;
   theme: ThemeType;
-  audioContext: MutableRefObject<AudioContext|null>;
-  worklet: MutableRefObject<AudioWorkletNode|null>;
+  audioContext: MutableRefObject<AudioContext | null>;
+  worklet: MutableRefObject<AudioWorkletNode | null>;
   onConversationEnd?: () => void;
   isBypass?: boolean;
   startConnection: () => Promise<void>;
@@ -54,10 +50,10 @@ const buildURL = ({
   }, [workerAddr]);
   const wsProtocol = (window.location.protocol === 'https:') ? 'wss' : 'ws';
   const url = new URL(`${wsProtocol}://${newWorkerAddr}/api/chat`);
-  if(workerAuthId) {
+  if (workerAuthId) {
     url.searchParams.append("worker_auth_id", workerAuthId);
   }
-  if(email) {
+  if (email) {
     url.searchParams.append("email", email);
   }
   url.searchParams.append("text_temperature", params.textTemperature.toString());
@@ -76,7 +72,7 @@ const buildURL = ({
 };
 
 
-export const Conversation:FC<ConversationProps> = ({
+export const Conversation: FC<ConversationProps> = ({
   workerAddr,
   workerAuthId,
   audioContext,
@@ -85,7 +81,7 @@ export const Conversation:FC<ConversationProps> = ({
   sessionId,
   onConversationEnd,
   startConnection,
-  isBypass=false,
+  isBypass = false,
   email,
   theme,
   ...params
@@ -103,13 +99,12 @@ export const Conversation:FC<ConversationProps> = ({
 
   const audioStreamDestination = useRef<MediaStreamAudioDestinationNode>(audioContext.current!.createMediaStreamDestination());
   const stereoMerger = useRef<ChannelMergerNode>(audioContext.current!.createChannelMerger(2));
-  const audioRecorder = useRef<MediaRecorder>(new MediaRecorder(audioStreamDestination.current.stream, { mimeType: getMimeType("audio"), audioBitsPerSecond: 128000  }));
+  const audioRecorder = useRef<MediaRecorder>(new MediaRecorder(audioStreamDestination.current.stream, { mimeType: getMimeType("audio"), audioBitsPerSecond: 128000 }));
   const [audioURL, setAudioURL] = useState<string>("");
   const [isOver, setIsOver] = useState(false);
   const modelParams = useModelParams(params);
   const micDuration = useRef<number>(0);
   const actualAudioPlayed = useRef<number>(0);
-  const textContainerRef = useRef<HTMLDivElement>(null);
   const textSeed = useMemo(() => Math.round(1000000 * Math.random()), []);
   const audioSeed = useMemo(() => Math.round(1000000 * Math.random()), []);
 
@@ -129,10 +124,10 @@ export const Conversation:FC<ConversationProps> = ({
   }, [setIsOver]);
 
   const { socketStatus, sendMessage, socket, start, stop } = useSocket({
-    // onMessage,
     uri: WSURL,
     onDisconnect,
   });
+
   useEffect(() => {
     audioRecorder.current.ondataavailable = (e) => {
       audioChunks.current.push(e.data);
@@ -140,10 +135,10 @@ export const Conversation:FC<ConversationProps> = ({
     audioRecorder.current.onstop = async () => {
       let blob: Blob;
       const mimeType = getMimeType("audio");
-      if(mimeType.includes("webm")) {
+      if (mimeType.includes("webm")) {
         blob = await fixWebmDuration(new Blob(audioChunks.current, { type: mimeType }));
-        } else {
-          blob = new Blob(audioChunks.current, { type: mimeType });
+      } else {
+        blob = new Blob(audioChunks.current, { type: mimeType });
       }
       setAudioURL(URL.createObjectURL(blob));
       audioChunks.current = [];
@@ -160,21 +155,17 @@ export const Conversation:FC<ConversationProps> = ({
   }, [start, workerAuthId]);
 
   const startRecording = useCallback(() => {
-    if(isRecording.current) {
+    if (isRecording.current) {
       return;
     }
-    console.log(Date.now() % 1000, "Starting recording");
     console.log("Starting recording");
-    // Build stereo routing for recording: left = server (worklet), right = user mic (connected in useUserAudio)
     try {
       stereoMerger.current.disconnect();
-    } catch {}
+    } catch { }
     try {
       worklet.current?.disconnect(audioStreamDestination.current);
-    } catch {}
-    // Route server audio (mono) to left channel of merger
+    } catch { }
     worklet.current?.connect(stereoMerger.current, 0, 0);
-    // Connect merger to the MediaStream destination
     stereoMerger.current.connect(audioStreamDestination.current);
 
     setAudioURL("");
@@ -184,75 +175,72 @@ export const Conversation:FC<ConversationProps> = ({
 
   const stopRecording = useCallback(() => {
     console.log("Stopping recording");
-    console.log("isRecording", isRecording)
-    if(!isRecording.current) {
+    if (!isRecording.current) {
       return;
     }
     try {
       worklet.current?.disconnect(stereoMerger.current);
-    } catch {}
+    } catch { }
     try {
       stereoMerger.current.disconnect(audioStreamDestination.current);
-    } catch {}
+    } catch { }
     audioRecorder.current.stop();
     isRecording.current = false;
   }, [isRecording, worklet, audioStreamDestination, audioRecorder, stereoMerger]);
 
-  const onPressConnect = useCallback(async () => {
-      if (isOver) {
-        window.location.reload();
-      } else {
-        audioContext.current?.resume();
-        if (socketStatus !== "connected") {
-          start();
-        } else {
-          stop();
-        }
-      }
-    }, [socketStatus, isOver, start, stop]);
-
-  const socketColor = useMemo(() => {
-    if (socketStatus === "connected") {
-      return 'bg-[#76b900]';
-    } else if (socketStatus === "connecting") {
-      return 'bg-orange-300';
-    } else {
-      return 'bg-red-400';
-    }
-  }, [socketStatus]);
-
-  const socketButtonMsg = useMemo(() => {
+  const onPressAction = useCallback(async () => {
     if (isOver) {
-      return 'New Conversation';
+      window.location.reload();
+    } else {
+      audioContext.current?.resume();
+      if (socketStatus !== "connected") {
+        start();
+      } else {
+        stop();
+      }
+    }
+  }, [socketStatus, isOver, start, stop]);
+
+  // Status display
+  const statusDisplay = useMemo(() => {
+    if (isOver) {
+      return { text: "Session Ended", color: "text-gray-400", dotColor: "bg-gray-400" };
     }
     if (socketStatus === "connected") {
-      return 'Disconnect';
-    } else {
-      return 'Connecting...';
+      return { text: "Examiner Ready – Start Speaking", color: "text-green-400", dotColor: "bg-green-500" };
     }
+    if (socketStatus === "connecting") {
+      return { text: "Connecting to AI Examiner...", color: "text-yellow-400", dotColor: "bg-yellow-500" };
+    }
+    return { text: "Disconnected", color: "text-red-400", dotColor: "bg-red-500" };
+  }, [socketStatus, isOver]);
+
+  const buttonText = useMemo(() => {
+    if (isOver) return "Start New Session";
+    if (socketStatus === "connected") return "End Session";
+    return "Connecting...";
   }, [isOver, socketStatus]);
 
   return (
-    <SocketContext.Provider
-      value={{
-        socketStatus,
-        sendMessage,
-        socket,
-      }}
-    >
-    <div>
-    <div className="main-grid h-screen max-h-screen w-screen p-4 max-w-96 md:max-w-screen-lg m-auto">
-      <div className="controls text-center flex justify-center items-center gap-2">
-         <Button
-            onClick={onPressConnect}
-            disabled={socketStatus !== "connected" && !isOver}
-          >
-            {socketButtonMsg}
-          </Button>
-          <div className={`h-4 w-4 rounded-full ${socketColor}`} />
+    <SocketContext.Provider value={{ socketStatus, sendMessage, socket }}>
+      <div className="min-h-screen w-screen flex flex-col items-center justify-between p-6 relative overflow-hidden">
+        {/* Ambient glow background */}
+        <div className="ambient-glow" />
+        <div className="fixed inset-0 bg-gradient-to-tr from-purple-900/20 via-transparent to-fuchsia-900/20 pointer-events-none" />
+
+        {/* Header */}
+        <div className="relative z-10 text-center pt-4">
+          <h1 className="text-3xl font-bold gradient-text">
+            IELTS Speaking Practice
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Powered by Anglotec × PersonaPlex
+          </p>
         </div>
-        {audioContext.current && worklet.current && <MediaContext.Provider value={
-          {
+
+        {/* Main visualizer area */}
+        {audioContext.current && worklet.current && (
+          <MediaContext.Provider value={{
             startRecording,
             stopRecording,
             audioContext: audioContext as MutableRefObject<AudioContext>,
@@ -261,35 +249,55 @@ export const Conversation:FC<ConversationProps> = ({
             stereoMerger,
             micDuration,
             actualAudioPlayed,
-          }
-        }>
-          <div className="relative player h-full max-h-full w-full justify-between gap-3 md:p-12">
-              <ServerAudio
-                setGetAudioStats={(callback: () => AudioStats) =>
-                  (getAudioStats.current = callback)
-                }
-                theme={theme}
-              />
-              <UserAudio theme={theme}/>
-              <div className="pt-8 text-sm flex justify-center items-center flex-col download-links">
-                {audioURL && <div><a href={audioURL} download={`personaplex_audio.${getExtension("audio")}`} className="pt-2 text-center block">Download audio</a></div>}
+          }}>
+            <div className="relative z-10 flex flex-col items-center justify-center flex-grow gap-8 w-full max-w-lg">
+              {/* Server (Examiner) Audio Visualizer */}
+              <div className="w-full flex justify-center">
+                <ServerAudio
+                  setGetAudioStats={(callback: () => AudioStats) => (getAudioStats.current = callback)}
+                  theme={theme}
+                />
               </div>
+
+              {/* User Audio Visualizer */}
+              <div className="w-full flex justify-center">
+                <UserAudio theme={theme} />
+              </div>
+            </div>
+          </MediaContext.Provider>
+        )}
+
+        {/* Controls */}
+        <div className="relative z-10 flex flex-col items-center gap-4 pb-6">
+          {/* Status indicator */}
+          <div className="flex items-center gap-3">
+            <div className={`w-3 h-3 rounded-full ${statusDisplay.dotColor} ${socketStatus === "connecting" ? "animate-pulse" : ""}`} />
+            <span className={`text-sm font-mono ${statusDisplay.color}`}>
+              {statusDisplay.text}
+            </span>
           </div>
-          <div className="scrollbar player-text" ref={textContainerRef}>
-            <TextDisplay containerRef={textContainerRef}/>
-          </div>
-          <div className="player-stats hidden md:block">
-            <ServerAudioStats getAudioStats={getAudioStats} />
-          </div></MediaContext.Provider>}
-        </div>
-        <div className="max-w-96 md:max-w-screen-lg p-4 m-auto text-center">
-          <ServerInfo/>
+
+          {/* Action button */}
+          <button
+            onClick={onPressAction}
+            disabled={socketStatus === "connecting"}
+            className={isOver ? "btn-primary" : "btn-secondary"}
+          >
+            {buttonText}
+          </button>
+
+          {/* Download link */}
+          {audioURL && (
+            <a
+              href={audioURL}
+              download={`ielts_practice.${getExtension("audio")}`}
+              className="text-sm text-purple-400 hover:text-purple-300 underline"
+            >
+              Download Recording
+            </a>
+          )}
         </div>
       </div>
     </SocketContext.Provider>
   );
 };
-
-        // </MediaContext.Provider> : undefined}
-        // 
-        // }></MediaContext.Provider>

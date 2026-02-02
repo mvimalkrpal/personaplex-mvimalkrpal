@@ -1,151 +1,123 @@
 import moshiProcessorUrl from "../../audio-processor.ts?worker&url";
 import { FC, useEffect, useState, useCallback, useRef, MutableRefObject } from "react";
-import eruda from "eruda";
 import { useSearchParams } from "react-router-dom";
 import { Conversation } from "../Conversation/Conversation";
-import { Button } from "../../components/Button/Button";
 import { useModelParams } from "../Conversation/hooks/useModelParams";
 import { env } from "../../env";
 import { prewarmDecoderWorker } from "../../decoder/decoderWorker";
 
-const VOICE_OPTIONS = [
-  "NATF0.pt", "NATF1.pt", "NATF2.pt", "NATF3.pt",
-  "NATM0.pt", "NATM1.pt", "NATM2.pt", "NATM3.pt",
-  "VARF0.pt", "VARF1.pt", "VARF2.pt", "VARF3.pt", "VARF4.pt",
-  "VARM0.pt", "VARM1.pt", "VARM2.pt", "VARM3.pt", "VARM4.pt",
-];
+// IELTS Examiner persona - default prompt
+const IELTS_EXAMINER_PROMPT = `You are an experienced IELTS speaking examiner conducting an official speaking test. Your role is to:
+- Ask clear, well-paced questions appropriate for IELTS speaking test
+- Give candidates time to respond fully
+- Ask natural follow-up questions based on their answers
+- Cover all three parts of the speaking test progressively
+- Be professional, encouraging, and maintain a natural conversation flow
 
-const TEXT_PROMPT_PRESETS = [
-  {
-    label: "Assistant (default)",
-    text: "You are a wise1 and friendly teacher. Answer questions or provide advice in a clear and engaging way.",
-  },
-  {
-    label: "Medical office (service)",
-    text: "You work for Dr. Jones's medical office, and you are receiving calls to record information for new patients. Information: Record full name, date of birth, any medication allergies, tobacco smoking history, alcohol consumption history, and any prior medical conditions. Assure the patient that this information will be confidential, if they ask.",
-  },
-  {
-    label: "Bank (service)",
-    text: "You work for First Neuron Bank which is a bank and your name is Alexis Kim. Information: The customer's transaction for $1,200 at Home Depot was declined. Verify customer identity. The transaction was flagged due to unusual location (transaction attempted in Miami, FL; customer normally transacts in Seattle, WA).",
-  },
-  {
-    label: "Astronaut (fun)",
-    text: "You enjoy having a good conversation. Have a technical discussion about fixing a reactor core on a spaceship to Mars. You are an astronaut on a Mars mission. Your name is Alex. You are already dealing with a reactor core meltdown on a Mars mission. Several ship systems are failing, and continued instability will lead to catastrophic failure. You explain what is happening and you urgently ask for help thinking through how to stabilize the reactor.",
-  },
-];
+Start by greeting the candidate warmly and asking for their full name. Then proceed with Part 1 questions about familiar topics.`;
+
+// Natural female voice for examiner
+const DEFAULT_VOICE = "NATF0.pt";
 
 interface HomepageProps {
   showMicrophoneAccessMessage: boolean;
   startConnection: () => Promise<void>;
-  textPrompt: string;
-  setTextPrompt: (value: string) => void;
-  voicePrompt: string;
-  setVoicePrompt: (value: string) => void;
 }
 
 const Homepage = ({
   startConnection,
   showMicrophoneAccessMessage,
-  textPrompt,
-  setTextPrompt,
-  voicePrompt,
-  setVoicePrompt,
 }: HomepageProps) => {
   return (
-    <div className="text-center h-screen w-screen p-4 flex flex-col items-center pt-8">
-      <div className="mb-6">
-        <h1 className="text-4xl text-black">PersonaPlex</h1>
-        <p className="text-sm text-gray-600 mt-2">
-          Full duplex conversational AI with text and voice control.
-        </p>
-      </div>
+    <div className="min-h-screen w-screen flex flex-col items-center justify-center p-6 relative">
+      {/* Ambient glow background */}
+      <div className="ambient-glow" />
 
-      <div className="flex flex-grow justify-center items-center flex-col gap-6 w-full min-w-[500px] max-w-2xl">
-        <div className="w-full">
-          <label htmlFor="text-prompt" className="block text-left text-base font-medium text-gray-700 mb-2">
-            Text Prompt:
-          </label>
-          <div className="border border-gray-300 rounded p-3 mb-3 bg-gray-50">
-            <span className="text-xs font-medium text-gray-500 block mb-2">Examples:</span>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {TEXT_PROMPT_PRESETS.map((preset) => (
-                <button
-                  key={preset.label}
-                  onClick={() => setTextPrompt(preset.text)}
-                  className="px-3 py-1 text-xs bg-white hover:bg-gray-100 text-gray-700 rounded-full border border-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-[#76b900]"
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
+      {/* Background gradient overlay */}
+      <div className="fixed inset-0 bg-gradient-to-tr from-purple-900/20 via-transparent to-fuchsia-900/20 pointer-events-none" />
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col items-center gap-8 max-w-lg text-center">
+
+        {/* Brand */}
+        <div className="mb-4">
+          <h1 className="text-5xl font-bold gradient-text mb-3">
+            IELTS Speaking Practice
+          </h1>
+          <p className="text-gray-400 text-sm">
+            Powered by Anglotec × PersonaPlex
+          </p>
+        </div>
+
+        {/* Description */}
+        <div className="glass p-6">
+          <p className="text-gray-300 leading-relaxed">
+            Practice your IELTS speaking skills with an AI examiner.
+            Experience a realistic speaking test environment with natural
+            conversation flow and instant feedback.
+          </p>
+        </div>
+
+        {/* Features */}
+        <div className="grid grid-cols-3 gap-4 w-full">
+          <div className="glass p-4 text-center">
+            <div className="text-2xl mb-2">🎯</div>
+            <div className="text-sm text-gray-300">Real Test Format</div>
           </div>
-          <textarea
-            id="text-prompt"
-            name="text-prompt"
-            value={textPrompt}
-            onChange={(e) => setTextPrompt(e.target.value)}
-            className="w-full h-32 min-h-[80px] max-h-64 p-3 bg-white text-black border border-gray-300 rounded resize-y focus:outline-none focus:ring-2 focus:ring-[#76b900] focus:border-transparent"
-            placeholder="Enter your text prompt..."
-            maxLength={1000}
-          />
-          <div className="text-right text-xs text-gray-500 mt-1">
-            {textPrompt.length}/1000
+          <div className="glass p-4 text-center">
+            <div className="text-2xl mb-2">🎙️</div>
+            <div className="text-sm text-gray-300">Natural Voice</div>
+          </div>
+          <div className="glass p-4 text-center">
+            <div className="text-2xl mb-2">💬</div>
+            <div className="text-sm text-gray-300">Full Duplex</div>
           </div>
         </div>
 
-        <div className="w-full">
-          <label htmlFor="voice-prompt" className="block text-left text-base font-medium text-gray-700 mb-2">
-            Voice:
-          </label>
-          <select
-            id="voice-prompt"
-            name="voice-prompt"
-            value={voicePrompt}
-            onChange={(e) => setVoicePrompt(e.target.value)}
-            className="w-full p-3 bg-white text-black border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#76b900] focus:border-transparent"
-          >
-            {VOICE_OPTIONS.map((voice) => (
-              <option key={voice} value={voice}>
-                {voice
-                  .replace('.pt', '')
-                  .replace(/^NAT/, 'NATURAL_')
-                  .replace(/^VAR/, 'VARIETY_')}
-              </option>
-            ))}
-          </select>
-      </div>
-
+        {/* Microphone warning */}
         {showMicrophoneAccessMessage && (
-          <p className="text-center text-red-500">Please enable your microphone before proceeding</p>
+          <div className="glass p-4 border-red-500/50 bg-red-500/10">
+            <p className="text-red-400 text-sm">
+              ⚠️ Please enable microphone access to continue
+            </p>
+          </div>
         )}
-        
-        <Button onClick={async () => await startConnection()}>Connect</Button>
-    </div>
+
+        {/* Start button */}
+        <button
+          onClick={async () => await startConnection()}
+          className="btn-primary text-lg px-10 py-4"
+        >
+          Start IELTS Session
+        </button>
+
+        {/* Footer note */}
+        <p className="text-gray-500 text-xs mt-4">
+          Ensure you're in a quiet environment with a working microphone
+        </p>
+      </div>
     </div>
   );
-}
+};
 
-export const Queue:FC = () => {
-  const theme = "light" as const;  // Always use light theme
+export const Queue: FC = () => {
+  const theme = "dark" as const;
   const [searchParams] = useSearchParams();
   const overrideWorkerAddr = searchParams.get("worker_addr");
   const [hasMicrophoneAccess, setHasMicrophoneAccess] = useState<boolean>(false);
   const [showMicrophoneAccessMessage, setShowMicrophoneAccessMessage] = useState<boolean>(false);
-  const modelParams = useModelParams();
+  const modelParams = useModelParams({
+    textPrompt: IELTS_EXAMINER_PROMPT,
+    voicePrompt: DEFAULT_VOICE,
+  });
 
   const audioContext = useRef<AudioContext | null>(null);
   const worklet = useRef<AudioWorkletNode | null>(null);
-  
-  // enable eruda in development
+
+  // Set IELTS defaults on mount
   useEffect(() => {
-    if(env.VITE_ENV === "development") {
-      eruda.init();
-    }
-    () => {
-      if(env.VITE_ENV === "development") {
-        eruda.destroy();
-      }
-    };
+    modelParams.setTextPrompt(IELTS_EXAMINER_PROMPT);
+    modelParams.setVoicePrompt(DEFAULT_VOICE);
   }, []);
 
   const getMicrophoneAccess = useCallback(async () => {
@@ -153,22 +125,20 @@ export const Queue:FC = () => {
       await window.navigator.mediaDevices.getUserMedia({ audio: true });
       setHasMicrophoneAccess(true);
       return true;
-    } catch(e) {
+    } catch (e) {
       console.error(e);
       setShowMicrophoneAccessMessage(true);
       setHasMicrophoneAccess(false);
     }
     return false;
-}, [setHasMicrophoneAccess, setShowMicrophoneAccessMessage]);
+  }, [setHasMicrophoneAccess, setShowMicrophoneAccessMessage]);
 
   const startProcessor = useCallback(async () => {
-    if(!audioContext.current) {
+    if (!audioContext.current) {
       audioContext.current = new AudioContext();
-      // Prewarm decoder worker as soon as we have audio context
-      // This gives WASM time to load while user grants mic access
       prewarmDecoderWorker(audioContext.current.sampleRate);
     }
-    if(worklet.current) {
+    if (worklet.current) {
       return;
     }
     let ctx = audioContext.current;
@@ -182,33 +152,26 @@ export const Queue:FC = () => {
     worklet.current.connect(ctx.destination);
   }, [audioContext, worklet]);
 
-  const startConnection = useCallback(async() => {
-      await startProcessor();
-      const hasAccess = await getMicrophoneAccess();
-      if (hasAccess) {
-      // Values are already set in modelParams, they get passed to Conversation
-    }
+  const startConnection = useCallback(async () => {
+    await startProcessor();
+    await getMicrophoneAccess();
   }, [startProcessor, getMicrophoneAccess]);
 
   return (
     <>
       {(hasMicrophoneAccess && audioContext.current && worklet.current) ? (
         <Conversation
-        workerAddr={overrideWorkerAddr ?? ""}
-        audioContext={audioContext as MutableRefObject<AudioContext|null>}
-        worklet={worklet as MutableRefObject<AudioWorkletNode|null>}
-        theme={theme}
-        startConnection={startConnection}
-        {...modelParams}
+          workerAddr={overrideWorkerAddr ?? ""}
+          audioContext={audioContext as MutableRefObject<AudioContext | null>}
+          worklet={worklet as MutableRefObject<AudioWorkletNode | null>}
+          theme={theme}
+          startConnection={startConnection}
+          {...modelParams}
         />
       ) : (
         <Homepage
           startConnection={startConnection}
           showMicrophoneAccessMessage={showMicrophoneAccessMessage}
-          textPrompt={modelParams.textPrompt}
-          setTextPrompt={modelParams.setTextPrompt}
-          voicePrompt={modelParams.voicePrompt}
-          setVoicePrompt={modelParams.setVoicePrompt}
         />
       )}
     </>
