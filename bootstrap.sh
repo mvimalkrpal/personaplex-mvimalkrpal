@@ -11,8 +11,6 @@ sudo apt install -y sox
 sudo apt install -y ca-certificates
 sudo apt install -y build-essential
 
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
 uv python install 3.10
 uv venv ~/persona_env --python 3.10
 source ~/persona_env/bin/activate
