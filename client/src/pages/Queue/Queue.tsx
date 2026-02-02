@@ -3,7 +3,6 @@ import { FC, useEffect, useState, useCallback, useRef, MutableRefObject } from "
 import { useSearchParams } from "react-router-dom";
 import { Conversation } from "../Conversation/Conversation";
 import { useModelParams } from "../Conversation/hooks/useModelParams";
-import { env } from "../../env";
 import { prewarmDecoderWorker } from "../../decoder/decoderWorker";
 
 // IELTS Examiner persona - default prompt

@@ -20,7 +20,7 @@ const COLORS = {
   background: "transparent",
 };
 
-export const ServerVisualizer: FC<AudioVisualizerProps> = ({ analyser, parent, theme }) => {
+export const ServerVisualizer: FC<AudioVisualizerProps> = ({ analyser, parent, theme: _theme }) => {
   const [canvasWidth, setCanvasWidth] = useState(parent.current ? Math.min(parent.current.clientWidth, parent.current.clientHeight) : 0);
   const requestRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);

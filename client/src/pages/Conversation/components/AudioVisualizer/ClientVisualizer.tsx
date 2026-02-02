@@ -25,7 +25,7 @@ const COLORS = [
   "#f5d0fe",  // 11 (top) - Fuchsia-200
 ];
 
-export const ClientVisualizer: FC<AudioVisualizerProps> = ({ analyser, parent, theme }) => {
+export const ClientVisualizer: FC<AudioVisualizerProps> = ({ analyser, parent, theme: _theme }) => {
   const [canvasWidth, setCanvasWidth] = useState(parent.current ? Math.min(parent.current.clientWidth, parent.current.clientHeight) : 0);
   const requestRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
