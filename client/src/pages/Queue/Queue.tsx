@@ -18,7 +18,7 @@ const VOICE_OPTIONS = [
 const TEXT_PROMPT_PRESETS = [
   {
     label: "Assistant (default)",
-    text: "You are a wise eli2 and friendly teacher. Answer questions or provide advice in a clear and engaging way.",
+    text: "You are a wise and friendly teacher. Answer questions or provide advice in a clear and engaging way.",
   },
   {
     label: "Medical office (service)",
