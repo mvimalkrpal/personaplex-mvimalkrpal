@@ -231,10 +231,10 @@ export const Conversation: FC<ConversationProps> = ({
         {/* Header */}
         <div className="relative z-10 text-center pt-4">
           <h1 className="text-3xl font-bold gradient-text">
-            IELTS Speaking Practice
+            Anglotec AI Demo
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Powered by Anglotec × PersonaPlex
+            Powered by heyluna.in
           </p>
         </div>
 
@@ -290,7 +290,7 @@ export const Conversation: FC<ConversationProps> = ({
           {audioURL && (
             <a
               href={audioURL}
-              download={`ielts_practice.${getExtension("audio")}`}
+              download={`anglotec_demo.${getExtension("audio")}`}
               className="text-sm text-purple-400 hover:text-purple-300 underline"
             >
               Download Recording

@@ -41,17 +41,17 @@ const Homepage = ({
         {/* Brand */}
         <div className="mb-4">
           <h1 className="text-5xl font-bold gradient-text mb-3">
-            IELTS Speaking Practice
+            Anglotec AI Demo
           </h1>
           <p className="text-gray-400 text-sm">
-            Powered by Anglotec × PersonaPlex
+            Powered by heyluna.in
           </p>
         </div>
 
         {/* Description */}
         <div className="glass p-6">
           <p className="text-gray-300 leading-relaxed">
-            Practice your IELTS speaking skills with an AI examiner.
+            Experience real-time voice AI conversation.
             Experience a realistic speaking test environment with natural
             conversation flow and instant feedback.
           </p>
