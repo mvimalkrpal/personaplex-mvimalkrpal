@@ -13,4 +13,5 @@ fi
 
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+uv pip install accelerate
 uv run --python ~/persona_env/bin/python -m moshi.server --device cpu --cpu-offload
