@@ -56,6 +56,8 @@ DeviceString = Literal["cuda"] | Literal["cpu"] #| Literal["mps"]
 
 IELTS_PROMPT="""Only reply: "I am groot"""
 
+raise RuntimeError("THIS FILE IS ACTUALLY RUNNING")
+
 def torch_auto_device(requested: Optional[DeviceString] = None) -> torch.device:
     """Return a torch.device based on the requested string or availability."""
     if requested is not None:
