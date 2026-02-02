@@ -50,7 +50,7 @@ from .models import loaders, MimiModel, LMModel, LMGen
 from .utils.connection import create_ssl_context, get_lan_ip
 from .utils.logging import setup_logger, ColorizedLog
 
-print("SERVER.PY LOADED FROM:", __file__)
+print("SERVERRRRR.PY LOADED FROM:", __file__)
 
 logger = setup_logger(__name__)
 DeviceString = Literal["cuda"] | Literal["cpu"] #| Literal["mps"]
